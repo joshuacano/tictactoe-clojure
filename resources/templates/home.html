@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jumbotron">
+	<h1>Welcome to connectfour</h1>
+	<p>Time to start playing </p>
+</div>
+<svg width="720" height="120">
+	<circle cx="40" cy="60" r="10"></circle>
+	<circle cx="80" cy="60" r="10"></circle>
+	<circle cx="120" cy="60" r="10"></circle>
+</svg>
+<div class="row">
+	<div class="span12">
+		{{docs|markdown}}
+	</div>
+</div>
+<script type="text/javascript">
+function moveCircle() {
+	var circle = d3.selectAll("circle");
+	circle.attr("cx", function (d, i) { return i * ((Math.random() % 3 ) * 200) + 30});
+}
+
+function setRow(data, index) {
+	for (i = 0; i< 3; i++){
+		data[i].dy = data[i].dy + (150 * index);
+	};
+}
+
+function clone(base) {
+	    var newArray = [];
+	        for(var i; i < base.length; i++) {
+			        newArray[i] = base[i];
+				    }
+		    return newArray;
+};
+
+$(document).ready(function() {
+	var circle = d3.selectAll("circle");
+	circle.style("fill", "steelblue");
+	circle.attr("r", 30);
+	//setInterval(moveCircle, 300);
+
+
+	var radius = 40;
+
+	window.states = [
+	{ dx : 103, dy : 167, label : "first" },
+	{ dx : 253, dy : 167, label : "second" },
+	{ dx : 403, dy : 167, label : "third" }
+	];
+	var states2 = [];
+	$.extend(true, states2, window.states); 
+	console.debug(states2);
+	console.debug(window.states);
+        setRow(states2, 2);
+
+	window.svg = d3.select("body")
+	.append("svg")
+	//.attr("viewBox", "0 0 " + 1000 + " " + 1000 )
+	//.attr("preserveAspectRatio", "xMinYMin")
+	.attr("width", "960px")
+	.attr("height", "500px");  
+
+	var gStates = svg.selectAll( "g.state").data( states);
+
+	var gState = gStates.enter().append("g")
+		.attr({"transform" : function( d) {
+			return "translate("+ [d.dx,d.dy] + ")";
+		},
+			'class'     : 'state' 
+		});
+	gState.append( "circle")
+		.attr({
+			r       : radius + 4,
+			class   : 'outer'
+		});
+});
+</script>
+{% endblock %}
