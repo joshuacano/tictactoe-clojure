@@ -1,6 +1,9 @@
 (ns connectfour.models.playbrain
   (:use [connectfour.models.matrix] 
-        [connectfour.models.validate]) )
+        [connectfour.models.validate])
+        
+ (:require [clojure.zip :as zip] )
+ (:gen-class))
 
 (defn score 
   "Return score of Matrix calculation"
@@ -20,77 +23,123 @@
   ([matrix] {:matrix matrix :id (gensym "tic") :score (score matrix) :depth -1}) ;Create root
   ([matrix [x y] parent depth] {:matrix matrix :matrixpoint [x y] :id (gensym "tic") :parent parent :score (score matrix depth) :depth depth})) ;Create child nodes
 
-(defn create-tramp-a 
-  "Recursive function to create Posible Outcomes"
-  ([tree] (if (not (zero? (:score tree))) tree (create-tramp-a tree nil))) ;Initialize
-  ([tree acc]
-   (let [matrix (:matrix tree)
-         id (:id tree)
-         depth (+ 1 (:depth tree))
-         avail (find-all-available matrix)
+(defn branch-tic [node]
+  "Make branch for tic tac toe"
+  (let [matrix (:matrix node)
+        avail (find-all-available matrix)
+        has-kids (pos? (count avail))
+        no-score (zero? (:score node))]
+    (and has-kids no-score)))
+
+(defn children-tic [node]
+  "Make children for tic tac toe"
+  (let [matrix (:matrix node)
+        id (:id node)
+        depth (+ 1 (:depth node))
+        avail (find-all-available matrix)
          mark (if (odd? depth) "x" "y")]
-     (if (not (zero? (:score tree))) acc ;If I have a score go ahead and stop
-       (if (pos? (count avail))  ;If I have children
-         (let [kids (map #(create-node (set-val matrix % mark) % id depth) avail)]
-           (for [newChild kids]
-             (trampoline create-tramp-a newChild (list acc newChild))))
-         acc)))))
+    (map #(create-node (set-val matrix % mark) % id depth) avail)))
 
-(defn create-tramp-new
-  "Recursive function to create Posible Outcomes"
-  ([tree] (if (not (zero? (:score tree))) tree (create-tramp-new tree nil))) ;Initialize
-  ([tree acc]
-   (let [matrix (:matrix tree)
-         id (:id tree)
-         depth (+ 1 (:depth tree))
-         avail (find-all-available matrix)
-         zero-kids (zero? (count avail))
-         have-score (not (zero? (:score tree)))
-         mark (if (odd? depth) "x" "y")]
-     (if (or have-score zero-kids) acc ;If I have a score or no kids go ahead and stop
-       (let [kids (map #(create-node (set-val matrix % mark) % id depth) avail)]
-         (for [newChild kids]
-           (trampoline create-tramp-new newChild (list acc newChild))))))))
+(defn node-tic 
+  [node children]
+  (cond
+    (nil? node) nil
+    (map? node) (assoc node :inputs (map #(hash-map :parent (:parent %) :score (:score %) :minmax (:minmax %) :matrixpoint (:matrixpoint %)) children))
+    (vector? node) (into [] children)
+    :else node))
 
-(defn create-tree [matrix]
-  (create-tramp-a (create-node matrix) (create-node matrix)))
-
-(defn find-depth [singletree depth] 
-  (filter #(= (:depth %) depth) (map #(select-keys % [:score :matrixpoint :depth]) (flatten singletree))))
-
-(defn get-minmax-score [coll depth]
+(defn get-minmax-score [depth coll]
   "Get MinMax algorithm result for a collection of integers"
-  (if (even? depth) (apply max coll) (apply min coll)))
+  ;(do
+  ;(println "MIN MAX Score " (if (odd? depth) (apply max coll) (apply min coll)))
+  (if (odd? depth) (apply max coll) (apply min coll)))
 
-(defn get-tree-minmax [singletree]
-  (loop [depth 0]
-     (let [tree-values (map :score (find-depth singletree depth)) ;I just need score out of these maps
-           score (get-minmax-score tree-values depth)]
-    (if (not (zero? score)) score ;Found Score!!
-      (recur (inc depth))))))
+(defn retrieve-minmax-score [node]
+  (if (nil? (:minmax node)) (:score node) (:minmax node)))
 
-;Deprecated Method
-(defn get-tree-score-ANTIQUATED [allmat] 
-  (let [flatmat (flatten allmat)
-        results (map #(:score %) flatmat)]
-   (remove zero? (remove nil? results))))
+(defn mk-zip [root]
+    (zip/zipper branch-tic children-tic node-tic root))
 
-(defn get-tree-scores [totalmat]
-  "Get scores for all possible moves on board"
-  (vec (map get-tree-minmax totalmat)))
+(defn zip-last-node 
+  [loc] 
+  (if (zip/branch? loc) (recur (-> loc zip/down)) loc))
 
-(defn get-tree-key [singlemat]
-  (let [flatmat (flatten singlemat)]
-    (first (distinct (remove nil? (map #(when (= 0 (:depth %)) (:matrixpoint %)) flatmat))))))
+(defn make-fake-zip []
+   (let [zd (zip/down (mk-zip (create-node (get-game-board))))]
+     (zip/right (zip-last-node zd))))
 
-(defn get-tree-keys [totalmat]
-  "Get Keys for all possible moves on board"
-  (vec (map get-tree-key totalmat)))
+(defn equal-matrix 
+  [aloc bloc]
+  (= (:matrix (zip/node aloc)) (:matrix (zip/node bloc))))
 
-(defn get-tree-keys-scores [totalmat] 
-  "Get Tree keys with scores"
-   (zipmap (get-tree-keys totalmat) (get-tree-scores totalmat)))
 
+(defn set-minmax-score 
+  [node score]
+   (assoc node :minmax score))
+
+(defn set-minmax-node 
+  ([loc] (if (nil? loc) loc
+   (set-minmax-node loc (:score (zip/node loc)))))
+  ([loc score]
+  (if (nil? loc) loc
+      (zip/edit loc set-minmax-score score))))
+
+(defn all-set? [coll]
+  (do 
+  (every? #(contains? % :minmax ) coll)))
+
+
+(defn extract-children [loc]
+  (if (nil? loc) nil  
+  (let [node (zip/node loc)]
+    (if (contains? node :inputs) 
+      (:inputs node)
+      (if (not (zip/branch? loc)) loc (zip/children loc))))))
+
+(defn collect-min-max 
+  [loc] 
+  (let [depth (:depth (zip/node loc))
+        children (extract-children loc)
+        minmax (if (nil? children) (:score (zip/node loc)) (get-minmax-score depth (map :minmax children)))]
+  (do 
+    (set-minmax-node loc minmax))))
+
+(defn gimme-new-loc
+  [initial-loc loc]
+    ;(println "LEAVES: " (zip/node loc))
+    ;(println "Am I A BRANCH? " (zip/branch? loc))
+  (cond 
+    (nil? loc) nil
+    (zip/branch? loc) loc
+    :else 
+    (let [no-siblings (zero? (count (zip/rights loc)))
+          newnode (set-minmax-node loc)]
+        ;No Kids and No Siblings
+        (if no-siblings (zip/up newnode)
+          ;No Kids but has Siblings
+          (zip/right newnode)))))
+  
+  (defn find-score-node
+    [initial-loc loc]
+    ;(println "PARENTS: " (zip/node loc))
+  (cond
+    (nil? loc) nil
+    (equal-matrix initial-loc loc) (collect-min-max loc)
+    (nil? (zip/up loc)) loc ;WE AT THE TOP!!
+    (not (zip/branch? loc)) (recur initial-loc (gimme-new-loc initial-loc loc))
+    (all-set? (extract-children loc)) 
+    (let [siblings (zip/rights loc)
+          newnode (collect-min-max loc)]
+    ;(do 
+      ;(println "I'm ALL SET")
+      ;(println "THIS NODE IS SET? " (zip/node newnode))
+     (if (zero? (count siblings)) (recur initial-loc (zip/up newnode))
+       (recur initial-loc (zip/right newnode))))
+    :else 
+           ; (println "children " (extract-children loc))
+           ; (println "I'm NOT SET FOR " (extract-children loc))
+           (recur initial-loc (zip/down loc))))
+            
 (defn get-random-move [matrix]
   "Get a Random move on Board"
   (let [available (find-all-available matrix)
@@ -102,8 +151,8 @@
 
 (defn get-best-move [board]
   "Get Best move on board"
-  (let [totalmat (create-tramp-new (create-node board))]
-    (key (apply max-key val (get-tree-keys-scores totalmat)))))
+  (let [totalmat (mk-zip (create-node board))]
+    (key (apply max-key val totalmat)))) ;(get-tree-keys-scores totalmat)))))
 
 (defn play-best-move [board mark]
   "Set Best move on board"
@@ -120,8 +169,8 @@
           (do 
             "This do loop is strictly for Debugging"
             (when (and (> counter 2) (even? counter)) 
-              (let [totalmat (create-tramp-new (create-node (get-game-board)))] 
-                (println "Here are the possible Moves " (str (get-tree-keys-scores totalmat)))))
+              (let [totalmat (mk-zip (get-game-board))] 
+                (println "Here are the possible Moves "))) ;(str (get-tree-keys-scores totalmat)))))
         (if (odd? counter) 
          (do 
             (println "Playing random, Move Count is " (str counter))
@@ -130,54 +179,3 @@
             (println "Playing Best Move, Move Count is " (str counter))
             (play-best-move (get-game-board) "y")))
             (recur (inc counter) (did-somebody-win? (get-game-board))))))))
-
-(defn flatten-tree [tree]
-  (map #(remove nil? %) (map flatten tree)))
-
-(defn get-root-nodes [tree]
-  (map first (flatten-tree tree)))
-
-(defn find-kids 
-  [parent tree] 
-  (let [id (:id parent)] 
-    (filter #(= (:parent %) id) tree)))
-
-(defn find-score 
-  [parent tree]
-  (let [node parent
-        totalscore (:score node)
-        kids (find-kids node tree)
-        no-kids (zero? (count (find-kids node tree)))
-        has-score (not (zero? (:score node)))]
-      (if (or no-kids has-score) totalscore
-         (get-minmax-score (map #(find-score % tree) kids) (:depth node)))))
-
-;THis is definitely Deprecated
-(defn length-x
-  "Calculate the length of a collection or sequence"
-  ([coll]
-   (length-x coll 0))
-  ([coll accumulator]
-   (if-let [[x & xs] (seq coll)]
-     (recur xs (inc accumulator))
-     accumulator)))
-
-;I believe this is Deprecated
-(defn first-level-nodes [tree mark depth]
-  (let [matrix (:matrix tree)
-        id (:id tree)]
-    (map #(create-node (set-val matrix % mark) % id depth) (find-all-available matrix))))
-
-;I believe this is Deprecated
-(defn first-level-tree [matrix mark parent depth ]
-  (map #(create-node (set-val matrix % mark) %) (find-all-available matrix)))
-
-;I believe this is Deprecated
-(defn second-level-tree [tree mark]
-  (let [matrix (:matrix tree)
-        [x y] (:matrixpoint tree)
-        parent (:id tree)
-        depth (inc (:depth tree))] 
-    (map #(create-node (set-val matrix % mark) % parent depth) (find-all-available matrix))))
-;  (fn [matrix]
-;    (case (s
