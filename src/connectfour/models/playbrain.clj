@@ -48,17 +48,16 @@
     (vector? node) (into [] children)
     :else node))
 
+(defn mk-zip [root]
+    (zip/zipper branch-tic children-tic node-tic root))
+
 (defn get-minmax-score [depth coll]
   "Get MinMax algorithm result for a collection of integers"
-  ;(do
-  ;(println "MIN MAX Score " (if (odd? depth) (apply max coll) (apply min coll)))
   (if (odd? depth) (apply max coll) (apply min coll)))
 
 (defn retrieve-minmax-score [node]
   (if (nil? (:minmax node)) (:score node) (:minmax node)))
 
-(defn mk-zip [root]
-    (zip/zipper branch-tic children-tic node-tic root))
 
 (defn zip-last-node 
   [loc] 
@@ -97,17 +96,15 @@
       (if (not (zip/branch? loc)) loc (zip/children loc))))))
 
 (defn collect-min-max 
-  [loc] 
+  [loc]
   (let [depth (:depth (zip/node loc))
-        children (extract-children loc)
+        children (if (not (zip/branch? loc)) nil (extract-children loc))
         minmax (if (nil? children) (:score (zip/node loc)) (get-minmax-score depth (map :minmax children)))]
-  (do 
-    (set-minmax-node loc minmax))))
+    (set-minmax-node loc minmax)))
 
 (defn gimme-new-loc
-  [initial-loc loc]
+  [loc]
     ;(println "LEAVES: " (zip/node loc))
-    ;(println "Am I A BRANCH? " (zip/branch? loc))
   (cond 
     (nil? loc) nil
     (zip/branch? loc) loc
@@ -120,13 +117,15 @@
           (zip/right newnode)))))
   
   (defn find-score-node
-    [initial-loc loc]
+    ([initial-loc] (if (nil? (zip/down initial-loc)) (find-score-node initial-loc initial-loc)
+                     (find-score-node initial-loc (zip/down initial-loc))))
+    ([initial-loc loc]
     ;(println "PARENTS: " (zip/node loc))
   (cond
     (nil? loc) nil
     (equal-matrix initial-loc loc) (collect-min-max loc)
     (nil? (zip/up loc)) loc ;WE AT THE TOP!!
-    (not (zip/branch? loc)) (recur initial-loc (gimme-new-loc initial-loc loc))
+    (not (zip/branch? loc)) (recur initial-loc (gimme-new-loc loc))
     (all-set? (extract-children loc)) 
     (let [siblings (zip/rights loc)
           newnode (collect-min-max loc)]
@@ -138,7 +137,7 @@
     :else 
            ; (println "children " (extract-children loc))
            ; (println "I'm NOT SET FOR " (extract-children loc))
-           (recur initial-loc (zip/down loc))))
+           (recur initial-loc (zip/down loc)))))
             
 (defn get-random-move [matrix]
   "Get a Random move on Board"
@@ -149,10 +148,19 @@
 (defn play-random-move [matrix mark]
   (set-permanent-val (get-random-move matrix) mark))
 
+(defn make-minmax-keys [node]
+"Makes a map with a key of possible move and its associated score"
+  {(:matrixpoint node) (:minmax node)})
+
 (defn get-best-move [board]
   "Get Best move on board"
-  (let [totalmat (mk-zip (create-node board))]
-    (key (apply max-key val totalmat)))) ;(get-tree-keys-scores totalmat)))))
+  (let [zipboard (mk-zip (create-node board))]
+    (if (not (zip/branch? zipboard)) (:matrixpoint (zip/node zipboard)) ;Return Only move left!
+      (let [childlocs (map mk-zip (zip/children zipboard))
+            scorelocs (map find-score-node childlocs)
+            childnodes (map zip/node scorelocs)
+            childscores (map make-minmax-keys childnodes)]
+        (key (apply max-key val (into {} childscores))))))) ;(get-tree-keys-scores totalmat)))))
 
 (defn play-best-move [board mark]
   "Set Best move on board"
@@ -162,20 +170,34 @@
   "Play computer v Computer till someone wins!" 
   (do 
     (init-permanent-matrix 3)
-    (loop [counter 1
-           any-winners? (did-somebody-win? (get-game-board))] 
-            (println "board is " (str (get-game-board)))
-      (if any-winners? (who-won (get-game-board)) ;If somebody win, call the who-won function and exit!
-          (do 
-            "This do loop is strictly for Debugging"
-            (when (and (> counter 2) (even? counter)) 
-              (let [totalmat (mk-zip (get-game-board))] 
-                (println "Here are the possible Moves "))) ;(str (get-tree-keys-scores totalmat)))))
-        (if (odd? counter) 
+    (loop [counter 1]
+      (cond
+       (did-somebody-win? (get-game-board)) (who-won (get-game-board)) ;If somebody win, call the who-won function and exit!
+        (odd? counter) 
          (do 
             (println "Playing random, Move Count is " (str counter))
-            (play-random-move (get-game-board) "x"))
-         (do
+            (play-random-move (get-game-board) "x")
+            (recur (inc counter)))
+         :else (do
             (println "Playing Best Move, Move Count is " (str counter))
-            (play-best-move (get-game-board) "y")))
-            (recur (inc counter) (did-somebody-win? (get-game-board))))))))
+            (play-best-move (get-game-board) "y")
+            (recur (inc counter)))))))
+
+(def best-move-maps (atom []))
+
+(defn set-best-move-map 
+  [board [x y] mark]
+    (let [newboard (set-val board [x y] mark)
+          matrixpoint (get-best-move newboard)]
+      (hash-map :index [x y] :matrix newboard :matrix-point matrixpoint)))
+
+(defn set-move-map
+  [board mark]
+  (let [cnt (count (find-all-available board))
+        size (* (count board) (count board))
+        mark (if (odd? cnt) "x" "y")]
+    (if (zero? cnt) mark
+      (for [avail (find-all-available board)]
+        (set-best-move-map board avail mark)))))
+
+

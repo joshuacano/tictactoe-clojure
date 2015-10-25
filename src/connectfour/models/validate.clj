@@ -41,11 +41,15 @@
                    (map #(get-diagonal matrix %) (range 2)))]
     (some who-func (flatten outcomes))))
 
+(defn did-game-draw? [matrix]
+  (all-taken? matrix))
+
 (defn did-somebody-win? [matrix]
   "Did anyone win this game?"
     (or 
       (check-any-winners? matrix x-won?)
-      (check-any-winners? matrix y-won?)))
+      (check-any-winners? matrix y-won?)
+      (did-game-draw? matrix )))
 
 (defn did-x-win? [matrix]
     (check-any-winners? matrix x-won?))
@@ -53,14 +57,11 @@
 (defn did-y-win? [matrix]
     (check-any-winners? matrix y-won?))
 
-(defn did-game-draw? [matrix]
-  (and (not (did-somebody-win? matrix)) (all-taken? matrix)))
-
 (defn who-won [matrix] 
   "returns a String indicating who won this game!"
   (cond 
-    (did-game-draw? matrix) "Game ended in a Draw Holmes, SORRY"
     (did-x-win? matrix) "x"
     (did-y-win? matrix) "y"
+    (did-game-draw? matrix) "Game ended in a Draw Holmes, SORRY"
     :else "Game is not over, Keep playing"))
 
