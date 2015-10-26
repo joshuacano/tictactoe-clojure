@@ -1,18 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-	<h1>Welcome to connectfour</h1>
-	<p>Time to start playing </p>
-</div>
-<svg width="720" height="120">
-	<circle cx="40" cy="60" r="10"></circle>
-	<circle cx="80" cy="60" r="10"></circle>
-	<circle cx="120" cy="60" r="10"></circle>
-</svg>
-<div class="row">
-	<div class="span12">
-		{{docs|markdown}}
-	</div>
+	<h1>Welcome to Tic Tac Toe</h1>
+	<p>Time to start playing</p>
 </div>
 <script type="text/javascript">
 function moveCircle() {
@@ -26,54 +16,151 @@ function setRow(data, index) {
 	};
 }
 
+function createBoard(svg, size) {
+     var localSize = size - 1;
+     var length = 180;
+     var xStart = 30;
+     var yStart = 420;
+     for (i=0; i < (size- 1); i++) {
+          var xArray = new Array();
+          var yArray = new Array();
+          var xPos = (yStart + length ) + (i * length);
+          var yPos = (xStart + length) + (i * length);
+          xArray.push(xPos, xStart);
+          xArray.push(xPos, xStart + (length * 3));
+          var newPoly = svg.append("polyline").attr("points", xArray );
+          boardAttributes(newPoly);
+          yArray.push(yStart, yPos);
+          yArray.push(yStart + (length * 3), yPos);
+          newPoly = svg.append("polyline").attr("points", yArray );
+          boardAttributes(newPoly);
+     }
+     createRectangles(svg, size);
+}
+
+function createRectangles(svg, size) {
+     var localSize = size - 1;
+     var xStart = 30;
+     var gap = 10;
+     var length = 180;
+     var yStart = 420;
+     for (i=0; i < size; i++) {
+	     for (k=0; k<size; k++) {
+		     var newPoly = svg.append("rect").attr({
+			x: yStart + (length * k),
+			y: xStart + (length * i),
+			width: length,
+			height: length,
+			class: "rect",
+			fill: "white",
+			opacity: 0});
+			newPoly.on("click", click);
+		}
+	}
+};
+
+
+function boardAttributes(poly) {
+        poly.attr("stroke-width", 12);
+        poly.attr("fill", "none");
+        poly.attr("stroke", "#DA5050");
+};
+
+function drawX(xPos, yPos) {
+	var lineArray = new Array();
+	var lineArray2 = new Array();
+        var length = 40;
+	var matrixSize = 3;
+        matrixSize = matrixSize - 1;
+        for (i=0; i <= matrixSize; i++) {
+           var point = [xPos + (length * i), yPos + (length * i)];
+	   lineArray.push(point);
+           point = [xPos + ((matrixSize-i) * length), yPos + (length * i)];
+	   lineArray2.push(point);
+        }
+        return lineArray.concat(lineArray[1], lineArray2);
+}
+
+function drawCircle(xPos, yPos) {
+     var circle = svg.append("circle").attr({
+		cx: xPos,
+		cy: yPos,
+                stroke: "steelblue",
+                fill: "none",
+                "stroke-width": 12,
+	 	r: 50});
+};
+
+function setMove(xIndex, yIndex) {
+        length = 180;
+	drawCircle(470 + 40 + (length * xIndex), 80 + 40 + (length * yIndex));
+};
+
 function clone(base) {
 	    var newArray = [];
-	        for(var i; i < base.length; i++) {
-			        newArray[i] = base[i];
+	    for(var i; i < base.length; i++) {
+	       newArray[i] = base[i];
 				    }
 		    return newArray;
 };
 
+function dragmove(d) {
+  var x = d3.event.x;
+  var y = d3.event.y;
+  d3.select(this).attr("transform", "translate(" + x + "," + y + ")");
+};
+
+function getIndex(xPos, yPos) {
+	xIndex = (xPos - 470) / 180;
+	yIndex = (yPos - 80) / 180;
+        var retMap = {x:xIndex, y:yIndex};
+        return retMap;
+};
+
+function click() {
+ // Ignore the click event if it was suppressed
+  console.log("CLICK");
+  length = 150 / 3;
+  var xLoc = this.x.baseVal.value + length;
+  var yLoc = this.y.baseVal.value + length;
+  if (d3.event.defaultPrevented) return;
+
+  console.log(xLoc + " " + yLoc + " " + getIndex(xLoc, yLoc));
+  console.log(getIndex(xLoc, yLoc));
+  // Extract the click location\    
+  var point = d3.mouse(this);
+  var p = {x: xLoc, y: yLoc};
+
+  // Append a new point
+  var polyline = svg.append("polyline").attr("points", drawX(p.x, p.y));
+  setPolylineAttr(polyline);
+}
+
+function setPolylineAttr(polylines) {
+        polylines.attr("stroke-width", 9);
+        polylines.attr("fill", "none");
+        polylines.attr("stroke", "steelblue");
+};
+
+//var drag = d3.behavior.drag()
+//    .origin(Object)
+//    .on("drag", dragmove);
+
+var svg = d3.select("body")
+            .append("svg")
+            .attr("width", 1200)   // <-- Here
+            .attr("height", 900);
+            //.on("click", click);
 $(document).ready(function() {
-	var circle = d3.selectAll("circle");
-	circle.style("fill", "steelblue");
-	circle.attr("r", 30);
-	//setInterval(moveCircle, 300);
-
-
+        //var dataset = [{x:60, y:120}, {x:100, y:120}, {x:140, y:120}]; 
+        //var polylines = svg.selectAll("polyline").data(dataset).enter().append("polyline");
+	//polylines.attr("points", function(d, i) {
+        //          	    return drawX(d.x, d.y);});  
+        //setPolylineAttr(polylines);
+        //polylines.call(drag);
+	createBoard(svg, 3);
 	var radius = 40;
 
-	window.states = [
-	{ dx : 103, dy : 167, label : "first" },
-	{ dx : 253, dy : 167, label : "second" },
-	{ dx : 403, dy : 167, label : "third" }
-	];
-	var states2 = [];
-	$.extend(true, states2, window.states); 
-	console.debug(states2);
-	console.debug(window.states);
-        setRow(states2, 2);
-
-	window.svg = d3.select("body")
-	.append("svg")
-	//.attr("viewBox", "0 0 " + 1000 + " " + 1000 )
-	//.attr("preserveAspectRatio", "xMinYMin")
-	.attr("width", "960px")
-	.attr("height", "500px");  
-
-	var gStates = svg.selectAll( "g.state").data( states);
-
-	var gState = gStates.enter().append("g")
-		.attr({"transform" : function( d) {
-			return "translate("+ [d.dx,d.dy] + ")";
-		},
-			'class'     : 'state' 
-		});
-	gState.append( "circle")
-		.attr({
-			r       : radius + 4,
-			class   : 'outer'
-		});
 });
 </script>
 {% endblock %}
