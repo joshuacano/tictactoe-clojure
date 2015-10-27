@@ -38,7 +38,8 @@
 
 (def app-routes
   (routes
-    (wrap-routes #'home-routes middleware/wrap-csrf)
+    ;(wrap-routes #'home-routes middleware/wrap-csrf)
+    home-routes ;Disabled CSRF for Ease of Use
     (route/not-found
       (:body
         (error-page {:status 404

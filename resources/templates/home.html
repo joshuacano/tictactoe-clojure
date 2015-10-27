@@ -2,9 +2,11 @@
 {% block content %}
 <div class="jumbotron">
 	<h1>Welcome to Tic Tac Toe</h1>
-	<p>Time to start playing</p>
+        <div id="winImage" style="display:none"><img src="https://media3.giphy.com/media/y5bfuptV9XExa/200.gif" height=200 width=300></div>
+        <div id="drawImage" style="display:none"><img src="https://media.giphy.com/media/tmRzKhljOabM4/giphy.gif" height=400 width=500></div>
 </div>
 <script type="text/javascript">
+//http://giphy.com/gifs/hooray-skeletor-aWRWTF27ilPzy
 function moveCircle() {
 	var circle = d3.selectAll("circle");
 	circle.attr("cx", function (d, i) { return i * ((Math.random() % 3 ) * 200) + 30});
@@ -66,6 +68,12 @@ function boardAttributes(poly) {
         poly.attr("stroke", "#DA5050");
 };
 
+function setPolylineAttr(polylines) {
+        polylines.attr("stroke-width", 9);
+        polylines.attr("fill", "none");
+        polylines.attr("stroke", "steelblue");
+};
+
 function drawX(xPos, yPos) {
 	var lineArray = new Array();
 	var lineArray2 = new Array();
@@ -91,10 +99,6 @@ function drawCircle(xPos, yPos) {
 	 	r: 50});
 };
 
-function setMove(xIndex, yIndex) {
-        length = 180;
-	drawCircle(470 + 40 + (length * xIndex), 80 + 40 + (length * yIndex));
-};
 
 function clone(base) {
 	    var newArray = [];
@@ -117,34 +121,137 @@ function getIndex(xPos, yPos) {
         return retMap;
 };
 
+function getPosition(xIndex, yIndex) {
+        length = 180;
+        var xPos = 470 + 40 + (length * xIndex)
+        var yPos = 80 + 40 + (length * yIndex);
+	var retMap = {x:xPos, y:yPos};
+        return retMap;
+};
+
 function click() {
  // Ignore the click event if it was suppressed
   console.log("CLICK");
   length = 150 / 3;
   var xLoc = this.x.baseVal.value + length;
   var yLoc = this.y.baseVal.value + length;
+  var mapIndex = getIndex(xLoc, yLoc);
   if (d3.event.defaultPrevented) return;
+  if (ticTacToe.isTaken(mapIndex.x, mapIndex.y)) return;
+  if (ticTacToe.computerTurn()) return;
 
   console.log(xLoc + " " + yLoc + " " + getIndex(xLoc, yLoc));
-  console.log(getIndex(xLoc, yLoc));
+  console.log(mapIndex);
+    
+  console.log(ticTacToe.isTaken(mapIndex.x, mapIndex.y));
+  ticTacToe.storeMove(mapIndex.x, mapIndex.y);
+
   // Extract the click location\    
   var point = d3.mouse(this);
   var p = {x: xLoc, y: yLoc};
 
-  // Append a new point
+  // Append a new Mark on Board
   var polyline = svg.append("polyline").attr("points", drawX(p.x, p.y));
   setPolylineAttr(polyline);
+  setMoveOnServer(mapIndex); 
 }
 
-function setPolylineAttr(polylines) {
-        polylines.attr("stroke-width", 9);
-        polylines.attr("fill", "none");
-        polylines.attr("stroke", "steelblue");
+function computerMove (xIndex, yIndex) {
+   var mapPos = getPosition(xIndex, yIndex);
+   drawCircle(mapPos.x, mapPos.y);
+   ticTacToe.storeMove(xIndex, yIndex);
 };
 
-//var drag = d3.behavior.drag()
-//    .origin(Object)
-//    .on("drag", dragmove);
+function win(winner) {
+   if (winner.x != null) {
+   	computerMove(winner.x, winner.y);
+   }
+   var winDiv = [];
+   if (winner.winner == "x" || winner.winner == "y") {
+ 	winDiv = $('#winImage');
+        if (winner.winner == "x") winner.winner = "YOU WON!!!!";
+        else winner.winner = "The computer won, the dynasty continues!";
+   }
+   else winDiv = $('#drawImage');
+   winDiv.append("<h1>" + winner.winner + "</h1>");
+   
+   var show = function(){
+      winDiv.css("display", "block");
+      setTimeout(hide, 5000);
+   }
+
+   var hide = function() { 
+      winDiv.css("display", "none");
+      ticTacToe.reset();
+   }
+   show(); 
+};
+
+function resetOnServer() {
+    $.ajax({
+        type: "GET",
+        url: "/init",
+        success: function(data){console.log("reset");},
+        failure: function(errMsg) { alert(errMsg);}
+    });
+};
+
+function setMoveOnServer(p) {
+    $.ajax({
+        type: "POST",
+        url: "/store-move",
+        data: JSON.stringify(p),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function(data){
+            console.log(data);
+        	if (data.winner != null) { //Enter Winning Action
+                 win(data);
+            } 
+            else computerMove(data.x, data.y); //Enter Computer's move on Screen
+        },
+        failure: function(errMsg) {
+            alert(errMsg);
+        }
+    });
+};
+
+var ticTacToe = (function() {
+    var size = 3; 
+    var gameBoard = new Array(size);
+    var turn = "x";
+
+    for (i=0; i < size; i++)
+      gameBoard[i] = new Array(size);
+ 
+    return {
+        gameBoard: function() {return gameBoard;},
+	getTurn: function() {return turn;}, 
+        reset: function() {
+            turn = "x";
+    	    gameBoard = new Array(size);
+    	    for (i=0; i < size; i++)
+	          gameBoard[i] = new Array(size);
+            resetOnServer();
+            svg.selectAll("*").remove()
+            createBoard(svg, size);
+        },
+        changeTurn: function() {
+	   if (turn == "x") turn = "y";
+           else turn = "x";
+        },
+        storeMove: function(xIndex, yIndex) {
+          gameBoard[xIndex][yIndex] = 1; 
+          this.changeTurn();
+        },
+        isTaken: function(xIndex, yIndex) {
+	  return gameBoard[xIndex][yIndex] == 1;
+	},
+        computerTurn: function() {
+          return turn == "y";
+        }
+    };  
+})(); 
 
 var svg = d3.select("body")
             .append("svg")
@@ -152,14 +259,9 @@ var svg = d3.select("body")
             .attr("height", 900);
             //.on("click", click);
 $(document).ready(function() {
-        //var dataset = [{x:60, y:120}, {x:100, y:120}, {x:140, y:120}]; 
-        //var polylines = svg.selectAll("polyline").data(dataset).enter().append("polyline");
-	//polylines.attr("points", function(d, i) {
-        //          	    return drawX(d.x, d.y);});  
-        //setPolylineAttr(polylines);
-        //polylines.call(drag);
 	createBoard(svg, 3);
 	var radius = 40;
+        console.log(ticTacToe.gameBoard());
 
 });
 </script>

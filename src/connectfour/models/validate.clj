@@ -1,4 +1,5 @@
 (ns connectfour.models.validate
+"Methods to validate Game as well as to check winners"
   (:use [connectfour.models.matrix])
   (:require [clojure.string :as string]))
         

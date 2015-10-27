@@ -1,7 +1,6 @@
 (ns connectfour.models.playbrain
   (:use [connectfour.models.matrix] 
         [connectfour.models.validate])
-        
  (:require [clojure.zip :as zip] )
  (:gen-class))
 
@@ -40,8 +39,8 @@
          mark (if (odd? depth) "x" "y")]
     (map #(create-node (set-val matrix % mark) % id depth) avail)))
 
-(defn node-tic 
-  [node children]
+(defn node-tic [node children]
+  "Make a new node for tic tac toe" 
   (cond
     (nil? node) nil
     (map? node) (assoc node :inputs (map #(hash-map :parent (:parent %) :score (:score %) :minmax (:minmax %) :matrixpoint (:matrixpoint %)) children))
@@ -49,6 +48,7 @@
     :else node))
 
 (defn mk-zip [root]
+"Master function to create board"
     (zip/zipper branch-tic children-tic node-tic root))
 
 (defn get-minmax-score [depth coll]
@@ -58,19 +58,18 @@
 (defn retrieve-minmax-score [node]
   (if (nil? (:minmax node)) (:score node) (:minmax node)))
 
-
-(defn zip-last-node 
-  [loc] 
+(defn zip-last-node [loc] 
+ "Helper function to zip to last node"  
   (if (zip/branch? loc) (recur (-> loc zip/down)) loc))
 
 (defn make-fake-zip []
+"This should be moved to testing functions"
    (let [zd (zip/down (mk-zip (create-node (get-game-board))))]
      (zip/right (zip-last-node zd))))
 
 (defn equal-matrix 
   [aloc bloc]
   (= (:matrix (zip/node aloc)) (:matrix (zip/node bloc))))
-
 
 (defn set-minmax-score 
   [node score]
@@ -83,28 +82,30 @@
   (if (nil? loc) loc
       (zip/edit loc set-minmax-score score))))
 
-(defn all-set? [coll]
+(defn all-set? 
+"A method to check if all items in a collection have had score set"
+[coll]
   (do 
   (every? #(contains? % :minmax ) coll)))
 
-
-(defn extract-children [loc]
+(defn extract-children 
+"Returns children of any particular node on tree"
+[loc]
   (if (nil? loc) nil  
   (let [node (zip/node loc)]
     (if (contains? node :inputs) 
       (:inputs node)
       (if (not (zip/branch? loc)) loc (zip/children loc))))))
 
-(defn collect-min-max 
-  [loc]
+(defn collect-min-max [loc]
+"Collect Minmax score for all children and set node to appropriate score"
   (let [depth (:depth (zip/node loc))
         children (if (not (zip/branch? loc)) nil (extract-children loc))
         minmax (if (nil? children) (:score (zip/node loc)) (get-minmax-score depth (map :minmax children)))]
     (set-minmax-node loc minmax)))
 
-(defn gimme-new-loc
-  [loc]
-    ;(println "LEAVES: " (zip/node loc))
+(defn gimme-new-loc [loc]
+"Guiding function to indicate direction of next node in search tree"
   (cond 
     (nil? loc) nil
     (zip/branch? loc) loc
@@ -117,10 +118,10 @@
           (zip/right newnode)))))
   
   (defn find-score-node
+  "find score for any tree of possible moves"
     ([initial-loc] (if (nil? (zip/down initial-loc)) (find-score-node initial-loc initial-loc)
                      (find-score-node initial-loc (zip/down initial-loc))))
     ([initial-loc loc]
-    ;(println "PARENTS: " (zip/node loc))
   (cond
     (nil? loc) nil
     (equal-matrix initial-loc loc) (collect-min-max loc)
@@ -129,14 +130,9 @@
     (all-set? (extract-children loc)) 
     (let [siblings (zip/rights loc)
           newnode (collect-min-max loc)]
-    ;(do 
-      ;(println "I'm ALL SET")
-      ;(println "THIS NODE IS SET? " (zip/node newnode))
      (if (zero? (count siblings)) (recur initial-loc (zip/up newnode))
        (recur initial-loc (zip/right newnode))))
     :else 
-           ; (println "children " (extract-children loc))
-           ; (println "I'm NOT SET FOR " (extract-children loc))
            (recur initial-loc (zip/down loc)))))
             
 (defn get-random-move [matrix]
@@ -163,8 +159,11 @@
         (key (apply max-key val (into {} childscores))))))) ;(get-tree-keys-scores totalmat)))))
 
 (defn play-best-move [board mark]
-  "Set Best move on board"
-  (set-permanent-val (get-best-move board) mark))
+  "Set Best move on board and return move to update front-end"
+  (let [move (get-best-move board)]
+  (do 
+    (set-permanent-val (get-best-move board) mark)
+    move)))
 
 (defn play-computer-v-computer [] 
   "Play computer v Computer till someone wins!" 
