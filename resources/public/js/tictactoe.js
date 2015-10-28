@@ -3,12 +3,6 @@ function moveCircle() {
 	circle.attr("cx", function (d, i) { return i * ((Math.random() % 3 ) * 200) + 30});
 }
 
-function setRow(data, index) {
-	for (i = 0; i< 3; i++){
-		data[i].dy = data[i].dy + (150 * index);
-	};
-}
-
 function createBoard(svg, size) {
      var localSize = size - 1;
      var length = 180;
@@ -90,20 +84,11 @@ function drawCircle(xPos, yPos) {
 	 	r: 50});
 };
 
-
-function clone(base) {
-	    var newArray = [];
-	    for(var i; i < base.length; i++) {
-	       newArray[i] = base[i];
-				    }
-		    return newArray;
-};
-
-function dragmove(d) {
-  var x = d3.event.x;
-  var y = d3.event.y;
-  d3.select(this).attr("transform", "translate(" + x + "," + y + ")");
-};
+//function dragmove(d) {
+//  var x = d3.event.x;
+//  var y = d3.event.y;
+//  d3.select(this).attr("transform", "translate(" + x + "," + y + ")");
+//};
 
 function getIndex(xPos, yPos) {
 	xIndex = (xPos - 470) / 180;
@@ -243,12 +228,9 @@ var ticTacToe = (function() {
 
 var svg = d3.select("body")
             .append("svg")
-            .attr("width", 1200)   // <-- Here
+            .attr("width", 1200)   // d3 is instantiated Here
             .attr("height", 900);
-            //.on("click", click);
 $(document).ready(function() {
 	createBoard(svg, 3);
 	var radius = 40;
-        console.log(ticTacToe.gameBoard());
-
 });

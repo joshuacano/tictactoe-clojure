@@ -1,7 +1,7 @@
 # Tic Tac Toe
 
 This is a clojure example of Tic Tac Toe, the user can play tic tac toe against the Computer. Unfortunately, the user is not allowed to win, so if you win, computers are gonna be so pissed. 
-All the computers, All of them, real pissed at you.
+All the computers, All of them.
 
 ## Prerequisites
 

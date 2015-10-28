@@ -191,7 +191,7 @@
       (hash-map :index [x y] :matrix newboard :matrix-point matrixpoint)))
 
 (defn set-move-map
-  [board mark]
+  [board]
   (let [cnt (count (find-all-available board))
         size (* (count board) (count board))
         mark (if (odd? cnt) "x" "y")]
