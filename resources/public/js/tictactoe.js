@@ -144,7 +144,7 @@ function win(winner) {
  	winDiv = $('#winImage');
         if (winner.winner == "x") winner.winner = "YOU WON!!!!";
 	else if (winner.winner == "y")  winner.winner = "The computer won, the dynasty continues!";
-	else winner.winner = "The game ended in draw holmes, SORRY!";
+	else winner.winner = "The game ended in a draw holmes, SORRY!";
    }
    else winDiv = $('#drawImage');
    $('.winText').html("<h1>" + winner.winner + "</h1>");
