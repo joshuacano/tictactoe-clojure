@@ -8,7 +8,7 @@ function createBoard(svg, size) {
      var length = 180;
      var xStart = 30;
      var yStart = 420;
-     for (i=0; i < (size- 1); i++) {
+     for (i=0; i < (size - 1); i++) {
           var xArray = new Array();
           var yArray = new Array();
           var xPos = (yStart + length ) + (i * length);
@@ -143,7 +143,8 @@ function win(winner) {
    if (winner.winner == "x" || winner.winner == "y") {
  	winDiv = $('#winImage');
         if (winner.winner == "x") winner.winner = "YOU WON!!!!";
-        else winner.winner = "The computer won, the dynasty continues!";
+	else if (winner.winner == "y")  winner.winner = "The computer won, the dynasty continues!";
+	else winner.winner = "The game ended in draw holmes, SORRY!";
    }
    else winDiv = $('#drawImage');
    $('.winText').html("<h1>" + winner.winner + "</h1>");

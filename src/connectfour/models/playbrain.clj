@@ -1,202 +1,57 @@
 (ns connectfour.models.playbrain
-  (:use [connectfour.models.matrix] 
+  "Playbrain is the brains of the Game, determines how to play next move, get best move or stage a computer game"
+  (:use [connectfour.models.matrix]
         [connectfour.models.validate])
- (:require [clojure.zip :as zip] )
- (:gen-class))
+  (:require [clojure.zip :as zip]
+            [connectfour.models.minmax :as mm]
+            [connectfour.models.alphabeta :as ab])
+  (:gen-class))
 
-(defn score 
-  "Return score of Matrix calculation"
-  ([matrix]
-  (cond 
-    (did-y-win? matrix) 10
-    (did-x-win? matrix) -10
-    :else 0))
-  ([matrix depth] ;Handle depth calculations too
-  (cond 
-    (did-y-win? matrix) (- 10 depth) 
-    (did-x-win? matrix) (- depth 10 )
-    :else 0)))
-
- (defn create-node 
-  "Create tree of each game board with score associated at point"
-  ([matrix] {:matrix matrix :id (gensym "tic") :score (score matrix) :depth -1}) ;Create root
-  ([matrix [x y] parent depth] {:matrix matrix :matrixpoint [x y] :id (gensym "tic") :parent parent :score (score matrix depth) :depth depth})) ;Create child nodes
-
-(defn branch-tic [node]
-  "Make branch for tic tac toe"
-  (let [matrix (:matrix node)
-        avail (find-all-available matrix)
-        has-kids (pos? (count avail))
-        no-score (zero? (:score node))]
-    (and has-kids no-score)))
-
-(defn children-tic [node]
-  "Make children for tic tac toe"
-  (let [matrix (:matrix node)
-        id (:id node)
-        depth (+ 1 (:depth node))
-        avail (find-all-available matrix)
-         mark (if (odd? depth) "x" "y")]
-    (map #(create-node (set-val matrix % mark) % id depth) avail)))
-
-(defn node-tic [node children]
-  "Make a new node for tic tac toe" 
-  (cond
-    (nil? node) nil
-    (map? node) (assoc node :inputs (map #(hash-map :parent (:parent %) :score (:score %) :minmax (:minmax %) :matrixpoint (:matrixpoint %)) children))
-    (vector? node) (into [] children)
-    :else node))
-
-(defn mk-zip [root]
-"Master function to create board"
-    (zip/zipper branch-tic children-tic node-tic root))
-
-(defn get-minmax-score [depth coll]
-  "Get MinMax algorithm result for a collection of integers"
-  (if (odd? depth) (apply max coll) (apply min coll)))
-
-(defn retrieve-minmax-score [node]
-  (if (nil? (:minmax node)) (:score node) (:minmax node)))
-
-(defn zip-last-node [loc] 
- "Helper function to zip to last node"  
-  (if (zip/branch? loc) (recur (-> loc zip/down)) loc))
-
-(defn make-fake-zip []
-"This should be moved to testing functions"
-   (let [zd (zip/down (mk-zip (create-node (get-game-board))))]
-     (zip/right (zip-last-node zd))))
-
-(defn equal-matrix 
-  [aloc bloc]
-  (= (:matrix (zip/node aloc)) (:matrix (zip/node bloc))))
-
-(defn set-minmax-score 
-  [node score]
-   (assoc node :minmax score))
-
-(defn set-minmax-node 
-  ([loc] (if (nil? loc) loc
-   (set-minmax-node loc (:score (zip/node loc)))))
-  ([loc score]
-  (if (nil? loc) loc
-      (zip/edit loc set-minmax-score score))))
-
-(defn all-set? 
-"A method to check if all items in a collection have had score set"
-[coll]
-  (do 
-  (every? #(contains? % :minmax ) coll)))
-
-(defn extract-children 
-"Returns children of any particular node on tree"
-[loc]
-  (if (nil? loc) nil  
-  (let [node (zip/node loc)]
-    (if (contains? node :inputs) 
-      (:inputs node)
-      (if (not (zip/branch? loc)) loc (zip/children loc))))))
-
-(defn collect-min-max [loc]
-"Collect Minmax score for all children and set node to appropriate score"
-  (let [depth (:depth (zip/node loc))
-        children (if (not (zip/branch? loc)) nil (extract-children loc))
-        minmax (if (nil? children) (:score (zip/node loc)) (get-minmax-score depth (map :minmax children)))]
-    (set-minmax-node loc minmax)))
-
-(defn gimme-new-loc [loc]
-"Guiding function to indicate direction of next node in search tree"
-  (cond 
-    (nil? loc) nil
-    (zip/branch? loc) loc
-    :else 
-    (let [no-siblings (zero? (count (zip/rights loc)))
-          newnode (set-minmax-node loc)]
-        ;No Kids and No Siblings
-        (if no-siblings (zip/up newnode)
-          ;No Kids but has Siblings
-          (zip/right newnode)))))
-  
-  (defn find-score-node
-  "find score for any tree of possible moves"
-    ([initial-loc] (if (nil? (zip/down initial-loc)) (find-score-node initial-loc initial-loc)
-                     (find-score-node initial-loc (zip/down initial-loc))))
-    ([initial-loc loc]
-  (cond
-    (nil? loc) nil
-    (equal-matrix initial-loc loc) (collect-min-max loc)
-    (nil? (zip/up loc)) loc ;WE AT THE TOP!!
-    (not (zip/branch? loc)) (recur initial-loc (gimme-new-loc loc))
-    (all-set? (extract-children loc)) 
-    (let [siblings (zip/rights loc)
-          newnode (collect-min-max loc)]
-     (if (zero? (count siblings)) (recur initial-loc (zip/up newnode))
-       (recur initial-loc (zip/right newnode))))
-    :else 
-           (recur initial-loc (zip/down loc)))))
-            
-(defn get-random-move [matrix]
+(defn get-random-move
   "Get a Random move on Board"
+  [matrix]
   (let [available (find-all-available matrix)
-        size (count available)]
+        size (count-available matrix)]
     (nth available (rand-int size))))
 
 (defn play-random-move [matrix mark]
   (set-permanent-val (get-random-move matrix) mark))
 
-(defn make-minmax-keys [node]
-"Makes a map with a key of possible move and its associated score"
-  {(:matrixpoint node) (:minmax node)})
-
-(defn get-best-move [board]
+(defn get-best-move
   "Get Best move on board"
-  (let [zipboard (mk-zip (create-node board))]
+  [board]
+  (let [zipboard (mm/mk-zip (mm/create-node board))]
     (if (not (zip/branch? zipboard)) (:matrixpoint (zip/node zipboard)) ;Return Only move left!
-      (let [childlocs (map mk-zip (zip/children zipboard))
-            scorelocs (map find-score-node childlocs)
+      (let [childlocs (map mm/mk-zip (zip/children zipboard))
+            scorelocs (map mm/find-score-node childlocs)
             childnodes (map zip/node scorelocs)
-            childscores (map make-minmax-keys childnodes)]
+            childscores (map mm/make-minmax-keys childnodes)]
         (key (apply max-key val (into {} childscores))))))) ;(get-tree-keys-scores totalmat)))))
 
-(defn play-best-move [board mark]
+(defn play-best-move
   "Set Best move on board and return move to update front-end"
-  (let [move (get-best-move board)]
-  (do 
-    (set-permanent-val (get-best-move board) mark)
-    move)))
+  [board mark]
+  (let [move (ab/get-best-move board)]
+    (do
+      (set-permanent-val move mark)
+      move)))
 
-(defn play-computer-v-computer [] 
-  "Play computer v Computer till someone wins!" 
-  (do 
+(defn play-computer-v-computer
+  "Play computer v Computer till someone wins!"
+  []
+  (do
     (init-permanent-matrix 3)
     (loop [counter 1]
       (cond
-       (did-somebody-win? (get-game-board)) (who-won (get-game-board)) ;If somebody win, call the who-won function and exit!
-        (odd? counter) 
-         (do 
-            (println "Playing random, Move Count is " (str counter))
-            (play-random-move (get-game-board) "x")
-            (recur (inc counter)))
-         :else (do
-            (println "Playing Best Move, Move Count is " (str counter))
-            (play-best-move (get-game-board) "y")
-            (recur (inc counter)))))))
-
-(def best-move-maps (atom []))
-
-(defn set-best-move-map 
-  [board [x y] mark]
-    (let [newboard (set-val board [x y] mark)
-          matrixpoint (get-best-move newboard)]
-      (hash-map :index [x y] :matrix newboard :matrix-point matrixpoint)))
-
-(defn set-move-map
-  [board]
-  (let [cnt (count (find-all-available board))
-        size (* (count board) (count board))
-        mark (if (odd? cnt) "x" "y")]
-    (if (zero? cnt) mark
-      (for [avail (find-all-available board)]
-        (set-best-move-map board avail mark)))))
+        (did-somebody-win? (get-game-board)) (who-won (get-game-board)) ;If somebody win, call the who-won function and exit!
+        (odd? counter)
+        (do
+          (println "Playing random, Move Count is " (str counter))
+          (play-random-move (get-game-board) "x")
+          (recur (inc counter)))
+        :else (do
+                (println "Playing Best Move, Move Count is " (str counter))
+                (play-best-move (get-game-board) "y")
+                (recur (inc counter)))))))
 
 

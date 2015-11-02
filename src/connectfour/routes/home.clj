@@ -1,6 +1,8 @@
 (ns connectfour.routes.home
   (:require [connectfour.layout :as layout]
             [connectfour.models.playbrain :refer :all]
+            [connectfour.models.minmax :as mm]
+            [connectfour.models.alphabeta :as ab]
             [connectfour.models.matrix :as mat]
             [connectfour.models.validate :refer :all]
             [compojure.core :refer [defroutes GET POST]]
@@ -34,7 +36,7 @@
   (mat/set-permanent-val [xindex yindex] "x")
   (if (did-somebody-win? (mat/get-game-board)) (assoc result :winner (who-won (mat/get-game-board)))
    (do 
-    (let [best-move (get-best-move (mat/get-game-board))
+    (let [best-move (ab/get-best-move (mat/get-game-board))
           saved (mat/set-permanent-val best-move "y")
           won (if (did-somebody-win? (mat/get-game-board)) (who-won (mat/get-game-board)) nil)]
       (assoc result :winner won :x (first best-move) :y (second best-move))))))))
@@ -45,8 +47,6 @@
          x (when (nil? winner) (first response))
          y (when (nil? winner) (second response))]
 	{:winner winner :x x :y y}))
-
-;(defn someone-won []
 
 (defroutes home-routes
   (GET "/" [] (home-page))

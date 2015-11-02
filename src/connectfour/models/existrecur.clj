@@ -1,4 +1,6 @@
 (ns connectfour.models.existrecur
+  "Existing recursive Solution Josh created, All functionality is moved to minmax and alphabeta
+   and Current file is now deprecated"
   (:use [connectfour.models.matrix] 
         [connectfour.models.validate]
         [connectfour.models.playbrain])
@@ -47,8 +49,9 @@
   "helper method"
   (map #(remove nil? %) (map flatten tree)))
 
-(defn get-root-node [tree]
+(defn get-root-node 
   "Helper Method"
+  [tree]
   (first tree))
 
 (defn find-kids
@@ -82,8 +85,9 @@
         results (map #(:score %) flatmat)]
     (remove zero? (remove nil? results))))
 
-(defn get-tree-scores [tree]
+(defn get-tree-scores 
   "Get scores for all possible moves on board"
+  [tree]
   (let [flattree (flatten-tree tree)]
     ( map #(find-score (get-root-node %) %) flattree)))
 
@@ -91,12 +95,14 @@
   (let [flatmat (flatten singlemat)]
     (first (distinct (remove nil? (map #(when (= 0 (:depth %)) (:matrixpoint %)) flatmat))))))
 
-(defn get-tree-keys [totalmat]
+(defn get-tree-keys 
   "Get Keys for all possible moves on board"
+  [totalmat]
   (vec (map get-tree-key totalmat)))
 
-(defn get-tree-keys-scores [totalmat]
+(defn get-tree-keys-scores 
   "Get Tree keys with scores"
+  [totalmat]
   (zipmap (get-tree-keys totalmat) (get-tree-scores totalmat)))
 
 ;THis is definitely Deprecated

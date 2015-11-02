@@ -1,4 +1,6 @@
-(ns connectfour.models.matrix)
+(ns connectfour.models.matrix
+  "Matrix declares all of the basic functionality and helper funcions for a tic tac toe game board"
+  )
 
 (def playmatrix (atom [{:spot1 "x" :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0}]))
 
@@ -24,8 +26,9 @@
 (defn taken [matrix [x y]]
   (not (= (get-val matrix [x y]) 0)))
 
-(defn set-val [matrix [x y] xo]
+(defn set-val 
   "Method to set val in matrix"
+  [matrix [x y] xo]
   (assoc-in matrix [y (keyify x)] xo))
 
 (defn set-permanent-val [[x y] xo]
@@ -46,14 +49,19 @@
           :when (= 0 (get-val matrix [x y]))]
       [x y])))
 
+(defn count-available [matrix]
+   (count (find-all-available matrix)))
+
 (defn get-game-board []
   @playmatrix)
 
 (defn count-val [matrix mark]
   (filter #(= mark %) (flatten (map vals matrix))))
 
-  (defn your-turn? [matrix mark]
+  (defn your-turn? 
     "Function to see if it is your turn. Still under construction"
+    [matrix mark]
    (let [xcount (count-val matrix "x")
          ycount (count-val matrix "y")]
      (if (and (= mark "y") (< ycount xcount)) true false)))
+

@@ -7,6 +7,8 @@
             [clojure.tools.nrepl.server :as nrepl]
             [clojure.tools.namespace.repl :refer [refresh]]
             [taoensso.timbre :as timbre]
+            [connectfour.models.minmax :as mm]
+            [connectfour.models.alphabeta :as ab]
             [environ.core :refer [env]])
   (:gen-class))
 
@@ -62,7 +64,7 @@
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app))
   (start-nrepl)
   (init-matrix 3) ;;Initialize Game!
-  (set-best-move-map) ;;Initialize Best Move Maps!
+  ;(set-best-move-map) ;;Initialize Best Move Maps!
   (start-http-server (http-port port))
   (timbre/info "server started on port:" (:port @http-server)))
 
