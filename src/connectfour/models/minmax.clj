@@ -138,6 +138,7 @@
      (recur initial-loc (zip/down loc)))))
 
 (defn find-score 
+  "Find Score for any particular board state"
   [board]
   (find-score-node (mk-zip (create-node board))))
 

@@ -38,12 +38,12 @@
 
 (defn play-computer-v-computer
   "Play computer v Computer till someone wins!"
-  []
+  [size]
   (do
-    (init-permanent-matrix 3)
+    (init-permanent-matrix size)
     (loop [counter 1]
       (cond
-        (did-somebody-win? (get-game-board)) (who-won (get-game-board)) ;If somebody win, call the who-won function and exit!
+        (did-somebody-win? (get-game-board)) (who-won? (get-game-board)) ;If somebody win, call the who-won function and exit!
         (odd? counter)
         (do
           (println "Playing random, Move Count is " (str counter))

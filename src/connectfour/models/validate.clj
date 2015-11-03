@@ -74,7 +74,7 @@
   [matrix]
     (check-any-winners? matrix y-won?))
 
-(defn who-won [matrix] 
+(defn who-won? [matrix] 
   "returns a String indicating who won this game!"
   (cond 
     (did-x-win? matrix) "x"

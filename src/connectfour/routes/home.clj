@@ -27,18 +27,17 @@
   (return-json (mat/get-game-board))))
 
 (defn matrix-page []
- (info (mat/get-game-board))
  (return-json (mat/get-game-board)))
 
 (defn set-and-return-computer-move [xindex yindex]
  (let [result {:winner nil :x nil :y nil}]
  (do
   (mat/set-permanent-val [xindex yindex] "x")
-  (if (did-somebody-win? (mat/get-game-board)) (assoc result :winner (who-won (mat/get-game-board)))
+  (if (did-somebody-win? (mat/get-game-board)) (assoc result :winner (who-won? (mat/get-game-board)))
    (do 
     (let [best-move (ab/get-best-move (mat/get-game-board))
           saved (mat/set-permanent-val best-move "y")
-          won (if (did-somebody-win? (mat/get-game-board)) (who-won (mat/get-game-board)) nil)]
+          won (if (did-somebody-win? (mat/get-game-board)) (who-won? (mat/get-game-board)) nil)]
       (assoc result :winner won :x (first best-move) :y (second best-move))))))))
 
 (defn handle-move [xindex yindex]
