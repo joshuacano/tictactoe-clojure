@@ -1,4 +1,4 @@
-(defproject connectfour "0.1.0-SNAPSHOT"
+(defproject connectfour "1.0.0"
 
   :description "A Simple version of Tic Tac Toe written on Luminus"
   :url "http://example.com:3000/"
