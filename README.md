@@ -9,13 +9,13 @@ All html/js/css files are located within the resources directory, I decided to u
 
 The Controller for the Application is located in the routes directory under src/connectfour/routes.
 
-The models directory contains all of the inner workings of tictactoe
-matrix.clj - contains all the code to display a game board 
-validate.clj - Contains all code to validate a board and determine winners
-playbrain.clj - Contains playing logic, for computer to play computer, or play random moves
-minmax.clj - Contains search tree using the basic minmax algorithm, uses clojure.zip. 
-alphabeta.clj - Contains alpha beta pruning version of the minmax algorithm.
-existrecur.clj - My very first take on attempting to solve the problem, brute force method to solve.
+The models directory contains all of the inner workings of tictactoe <br />
+matrix.clj - contains all the code to display a game board<br />
+validate.clj - Contains all code to validate a board and determine winners <br />
+playbrain.clj - Contains playing logic, for computer to play computer, or play random moves <br />
+minmax.clj - Contains search tree using the basic minmax algorithm, uses clojure.zip<br />
+alphabeta.clj - Contains alpha beta pruning version of the minmax algorithm<br />
+existrecur.clj - My very first take on attempting to solve the problem, brute force method to solve<br />
 
 I used luminus to create this project, which creates a easy scaffolding for creating small web apps, you can find the project site for this here. http://www.luminusweb.net/
 
