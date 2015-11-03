@@ -1,11 +1,12 @@
 (ns connectfour.models.matrix
-  "Matrix declares all of the basic functionality and helper funcions for a tic tac toe game board"
-  )
+  "Matrix declares all of the basic functionality 
+   and helper funcions for a tic tac toe game board"
+)
 
-(def playmatrix (atom [{:spot1 "x" :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0}]))
+(def playmatrix (atom [{:spot1 0 :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0} {:spot1 0 :spot2 0 :spot3 0}]))
 
 (defn keyify 
-  "Keyify the column names for keys of matri"
+  "Keyify the column names for keys of matrix"
   [x]
   (keyword (str "spot" (+ x 1))))
 
@@ -33,9 +34,9 @@
 (defn get-val 
   "Get value at particular index on board"
   [matrix [x y]]
-  ((get matrix y) (keyify x)))
+  ((get matrix y)(keyify x)))
 
-(defn taken? 
+(defn taken?
   "Is space taken?"
   [matrix [x y]]
   (not (= (get-val matrix [x y]) 0)))
@@ -45,19 +46,19 @@
   [matrix [x y] xo]
   (assoc-in matrix [y (keyify x)] xo))
 
-(defn set-permanent-val 
+(defn set-permanent-val
   "Set Permanent value in Matrix atom for system"
   [[x y] xo]
-  (if-not (taken? @playmatrix [x y])
+  (if (not (taken? @playmatrix [x y]))
     (do 
       (swap! playmatrix assoc-in [y (keyify x)] xo)
       true)
     false))
 
-(defn init-permanent-matrix 
+(defn init-permanent-matrix
   "Initialize permanent gameboard"
   [size]
-  (when (> size 2)
+  (if (> size 2)
     (reset! playmatrix (get-matrix size))))
 
 (defn find-all-available 
@@ -72,22 +73,20 @@
 (defn count-available 
   "Count available spaces on board"
   [matrix]
-   (count (find-all-available matrix)))
+  (count (find-all-available matrix)))
 
-(defn get-game-board 
-  "Return board"`
-  []
-  @playmatrix)
+;Get Game Board
+(defn get-game-board [] @playmatrix)
 
 (defn count-val 
   "Count instances of a particular mark on board"
   [matrix mark]
   (filter #(= mark %) (flatten (map vals matrix))))
 
-  (defn your-turn? 
-    "Function to see if it is your turn. Still under construction"
-    [matrix mark]
-   (let [xcount (count-val matrix "x")
-         ycount (count-val matrix "y")]
-     (if (and (= mark "y") (< ycount xcount)) true false)))
+(defn your-turn? 
+  "Function to see if it is your turn. Still under construction"
+  [matrix mark]
+  (let [xcount (count-val matrix "x")
+        ycount (count-val matrix "y")]
+    (if (and (= mark "y") (< ycount xcount)) true false)))
 

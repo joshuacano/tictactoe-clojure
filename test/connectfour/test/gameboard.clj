@@ -34,7 +34,7 @@
       (set-permanent-val [0 1] "x")
       (set-permanent-val [2 2] "y")
       (set-permanent-val [0 0] "x")
-      (is (= "x" (did-x-win? (get-game-board))))))
+      (is (= "x" (who-won? (get-game-board))))))
   
   (testing "Testing that y can win the game!"
     (do 
@@ -44,7 +44,7 @@
       (set-permanent-val [0 1] "y")
       (set-permanent-val [2 2] "x")
       (set-permanent-val [0 0] "y")
-      (is (= "y" (did-y-win? (get-game-board))))))
+      (is (= "y" (who-won? (get-game-board))))))
   
   (testing "Testing that there is a draw"
     (do 
