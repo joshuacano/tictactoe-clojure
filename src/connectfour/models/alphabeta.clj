@@ -1,5 +1,5 @@
 (ns connectfour.models.alphabeta 
-  "code for Alphabeta search"
+  "code for Alphabeta version of MinMax search"
   (:use [connectfour.models.matrix] 
         [connectfour.models.validate])
   (:require [clojure.zip :as zip] 

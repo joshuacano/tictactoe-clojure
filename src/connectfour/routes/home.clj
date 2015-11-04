@@ -30,9 +30,11 @@
   (return-json (mat/get-game-board))))
 
 (defn matrix-page 
-"Debugging page to display matrix"
+"Page that returns current state of matrix and winner"
 []
- (return-json (mat/get-game-board)))
+(let [matrix (mat/get-game-board)
+      won (if (did-somebody-win? matrix) (who-won? matrix) nil)]
+ (return-json {:winner won :matrix matrix}))) 
 
 (defn set-and-return-computer-move 
  "Set user move and return computer move"

@@ -4,6 +4,26 @@ body {
     height: 100%;
     padding-top: 40px;
 }
+
+.game-board {
+   stroke-width: 12;
+   fill: none;
+   stroke:#DA5050;
+}
+
+.board-circle { 
+   stroke-width: 9;
+   fill: none;
+   stroke: steelblue;
+}
+
+.board-x {
+	stroke: steelblue;
+	fill: none;
+	stroke-width:12;
+}
+
+
 {% if cljs %}
 @-moz-keyframes three-quarters-loader {
     0% {

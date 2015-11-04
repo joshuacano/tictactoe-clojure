@@ -1,11 +1,76 @@
-function moveCircle() {
-	var circle = d3.selectAll("circle");
-	circle.attr("cx", function (d, i) { return i * ((Math.random() % 3 ) * 200) + 30});
-}
+/** 
+  * @desc this class contains all functions for user interaction with tictactoe
+  * as well as drawing the board and associated actions.
+  * 
+  * @author Joshua Cano jcano@dcci.com
+*/
 
+var svg = d3.select("body")
+.append("svg")
+.attr("width", 1200)   // d3 is instantiated Here
+.attr("height", 900);
+
+/*
+ * The heart of the board, the controller to handle interactions between front-end and server
+ */
+var ticTacToe = (function() {
+	var size = 3; 
+	var gameBoard = new Array(size);
+	var radius = 50;
+	var length = 180;
+	var turn = "x";
+
+	for (i=0; i < size; i++)
+		gameBoard[i] = new Array(size);
+
+	return {
+		gameBoard: function() {return gameBoard;},
+		radius: function() {return radius;},
+		length: function() {return length;},
+		getTurn: function() {return turn;}, 
+		reset: function() {
+			turn = "x";
+			gameBoard = new Array(size);
+			for (i=0; i < size; i++)
+				gameBoard[i] = new Array(size);
+			resetOnServer();
+			svg.selectAll("*").remove();
+			createBoard(svg, size);
+		},
+		changeTurn: function() {
+			if (turn == "x") turn = "y";
+			else turn = "x";
+		},
+		storeMove: function(xIndex, yIndex) {
+			gameBoard[xIndex][yIndex] = 1; 
+			this.changeTurn();
+		},
+		isTaken: function(xIndex, yIndex) {
+			return gameBoard[xIndex][yIndex] == 1;
+		},
+		computerTurn: function() {
+			return turn == "y";
+		},
+		setTurn: function(count) {
+			if (count % 2 == 0) turn ="x";
+			else turn = "y";
+		}
+	};  
+})(); 
+
+
+$(document).ready(function() {
+	createBoard(svg, 3);
+	getBoardFromServer();
+});
+
+
+/*
+ * Create board on first load of page
+ */
 function createBoard(svg, size) {
      var localSize = size - 1;
-     var length = 180;
+     var length = ticTacToe.length();
      var xStart = 30;
      var yStart = 420;
      for (i=0; i < (size - 1); i++) {
@@ -25,11 +90,14 @@ function createBoard(svg, size) {
      createRectangles(svg, size);
 }
 
+/*
+ * Create transparent rectangles which catch user's clicks.
+ */
 function createRectangles(svg, size) {
      var localSize = size - 1;
      var xStart = 30;
      var gap = 10;
-     var length = 180;
+     var length = ticTacToe.length();
      var yStart = 420;
      for (i=0; i < size; i++) {
 	     for (k=0; k<size; k++) {
@@ -48,21 +116,20 @@ function createRectangles(svg, size) {
 
 
 function boardAttributes(poly) {
-        poly.attr("stroke-width", 12);
-        poly.attr("fill", "none");
-        poly.attr("stroke", "#DA5050");
+        poly.classed("game-board", true);
 };
 
-function setPolylineAttr(polylines) {
-        polylines.attr("stroke-width", 9);
-        polylines.attr("fill", "none");
-        polylines.attr("stroke", "steelblue");
+function setXClass(polylines) {
+        polylines.classed("board-x", true);
 };
 
+/*
+ * Draw X on Board at specified location
+ */
 function drawX(xPos, yPos) {
 	var lineArray = new Array();
 	var lineArray2 = new Array();
-        var length = 40;
+        var length = ticTacToe.radius() - 10;
 	var matrixSize = 3;
         matrixSize = matrixSize - 1;
         for (i=0; i <= matrixSize; i++) {
@@ -71,70 +138,77 @@ function drawX(xPos, yPos) {
            point = [xPos + ((matrixSize-i) * length), yPos + (length * i)];
 	   lineArray2.push(point);
         }
-        return lineArray.concat(lineArray[1], lineArray2);
+	var points = lineArray.concat(lineArray[1], lineArray2);
+	var polyline = svg.append("polyline").attr("points", points);
+	setXClass(polyline);
 }
-
+/*
+ * Draw Circle on Board at specified location
+ */
 function drawCircle(xPos, yPos) {
      var circle = svg.append("circle").attr({
 		cx: xPos,
 		cy: yPos,
-                stroke: "steelblue",
-                fill: "none",
-                "stroke-width": 12,
-	 	r: 50});
+                class: "board-circle",
+	 	r: ticTacToe.radius()});
 };
 
-//function dragmove(d) {
-//  var x = d3.event.x;
-//  var y = d3.event.y;
-//  d3.select(this).attr("transform", "translate(" + x + "," + y + ")");
-//};
-
+/*
+ * Returns Matrix Index of move based on X & Y position of click
+ */
 function getIndex(xPos, yPos) {
-	xIndex = (xPos - 470) / 180;
-	yIndex = (yPos - 80) / 180;
+	xIndex = (xPos - 470) / ticTacToe.length();
+	yIndex = (yPos - 80) / ticTacToe.length();
         var retMap = {x:xIndex, y:yIndex};
         return retMap;
 };
 
-function getPosition(xIndex, yIndex) {
-        length = 180;
-        var xPos = 470 + 40 + (length * xIndex)
-        var yPos = 80 + 40 + (length * yIndex);
+/*
+ * Returns Position to start drawing based on x & y index of Matrix
+ */
+function getPosition(xIndex, yIndex, offset) {
+        var length = ticTacToe.length();
+	if (offset == undefined) offset = 40;
+        var xPos = 470 + offset + (length * xIndex)
+        var yPos = 80 + offset + (length * yIndex);
 	var retMap = {x:xPos, y:yPos};
         return retMap;
 };
 
+
+/*
+ * Handle users Click! Currently only writes an X.
+ */
 function click() {
   length = 150 / 3;
-  var xLoc = this.x.baseVal.value + length;
-  var yLoc = this.y.baseVal.value + length;
-  var mapIndex = getIndex(xLoc, yLoc);
+  var xPos = this.x.baseVal.value + length;
+  var yPos = this.y.baseVal.value + length;
+  var mapIndex = getIndex(xPos, yPos);
   
   // Ignore the click event if it was suppressed
   if (d3.event.defaultPrevented) return;
   if (ticTacToe.isTaken(mapIndex.x, mapIndex.y)) return;
   if (ticTacToe.computerTurn()) return;
 
-  //console.log(ticTacToe.isTaken(mapIndex.x, mapIndex.y));
   ticTacToe.storeMove(mapIndex.x, mapIndex.y);
 
-  // Extract the click location\    
-  var point = d3.mouse(this);
-  var p = {x: xLoc, y: yLoc};
-
   // Append a new Mark on Board
-  var polyline = svg.append("polyline").attr("points", drawX(p.x, p.y));
-  setPolylineAttr(polyline);
+  drawX(xPos, yPos);
   setMoveOnServer(mapIndex); 
 }
 
+/*
+ * Draw Circle on page, and store move in ticTacToe Matrix
+ */ 
 function computerMove (xIndex, yIndex) {
    var mapPos = getPosition(xIndex, yIndex);
    drawCircle(mapPos.x, mapPos.y);
    ticTacToe.storeMove(xIndex, yIndex);
 };
 
+/*
+ * Handle Winning!
+ */
 function win(winner) {
    if (winner.x != null) {
    	computerMove(winner.x, winner.y);
@@ -142,11 +216,13 @@ function win(winner) {
    var winDiv = [];
    if (winner.winner == "x" || winner.winner == "y") {
  	winDiv = $('#winImage');
-        if (winner.winner == "x") winner.winner = "YOU WON!!!!";
-	else if (winner.winner == "y")  winner.winner = "The computer won, the dynasty continues!";
-	else winner.winner = "The game ended in a draw holmes, SORRY!";
+        if (winner.winner == "x") winner.winner = "YOU WON!!!! I AM DEVASTATED.";
+	else winner.winner = "The computer won, the dynasty continues!";
    }
-   else winDiv = $('#drawImage');
+   else {
+	winDiv = $('#drawImage');
+	winner.winner = "The game ended in a draw holmes, SORRY!";
+   }
    $('.winText').html("<h1>" + winner.winner + "</h1>");
    
    var show = function(){
@@ -161,15 +237,66 @@ function win(winner) {
    show(); 
 };
 
+/*
+ * Reset board on server
+ */
 function resetOnServer() {
     $.ajax({
         type: "GET",
         url: "/init",
-        success: function(data){console.log("reset");},
+        success: function(data){},
         failure: function(errMsg) { alert(errMsg);}
     });
 };
 
+/*
+ * Draw moves saved on server for user visualization
+ */
+function loadBoard(data) {
+	var matrix = data.matrix;
+	//If there is a Winner Redraw board and set correctly on server.
+	if (data.winner) {
+             ticTacToe.reset();
+	     return;
+	}
+	var size = matrix.length;
+	var turnCount = 0;
+	for (var yIndex = 0; yIndex < matrix.length; yIndex++) {
+		$.each(matrix[yIndex], function (index, value){
+			if (value == "x" || value == "y") {
+				var xIndex = index.slice(-1); //get Last Character of value, Change Internal logic to return actual index!
+				xIndex = xIndex - 1;
+				var position = getPosition(xIndex, yIndex); 
+				ticTacToe.storeMove(xIndex, yIndex);
+				turnCount++;
+				if (value == "x") {
+					position = getPosition(xIndex, yIndex, 0);
+					drawX(position.x, position.y);
+				}
+				else drawCircle(position.x, position.y);
+			}
+		});
+	}
+	ticTacToe.setTurn(turnCount);
+};
+
+/*
+ * Asks Server to return current state of Matrix and whether or not there is a winner.
+ */
+function getBoardFromServer() {
+     $.ajax({
+	     type: "GET",
+	     url: "/matrix",
+	     success: function(data) {
+		loadBoard(data);
+	     },
+	     failure: function(errMsg) { alert(errMsg);}
+            })
+};
+
+/*
+ * Sets move on server, display winner if there is one, and display computer's move on screen.
+ */
 function setMoveOnServer(p) {
     $.ajax({
         type: "POST",
@@ -178,8 +305,7 @@ function setMoveOnServer(p) {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function(data){
-            console.log(data);
-        	if (data.winner != null) { //Enter Winning Action
+            if (data.winner != null) { //Enter Winning Action
                  win(data);
             } 
             else computerMove(data.x, data.y); //Enter Computer's move on Screen
@@ -190,48 +316,3 @@ function setMoveOnServer(p) {
     });
 };
 
-var ticTacToe = (function() {
-    var size = 3; 
-    var gameBoard = new Array(size);
-    var turn = "x";
-
-    for (i=0; i < size; i++)
-      gameBoard[i] = new Array(size);
- 
-    return {
-        gameBoard: function() {return gameBoard;},
-	getTurn: function() {return turn;}, 
-        reset: function() {
-            turn = "x";
-    	    gameBoard = new Array(size);
-    	    for (i=0; i < size; i++)
-	          gameBoard[i] = new Array(size);
-            resetOnServer();
-            svg.selectAll("*").remove()
-            createBoard(svg, size);
-        },
-        changeTurn: function() {
-	   if (turn == "x") turn = "y";
-           else turn = "x";
-        },
-        storeMove: function(xIndex, yIndex) {
-          gameBoard[xIndex][yIndex] = 1; 
-          this.changeTurn();
-        },
-        isTaken: function(xIndex, yIndex) {
-	  return gameBoard[xIndex][yIndex] == 1;
-	},
-        computerTurn: function() {
-          return turn == "y";
-        }
-    };  
-})(); 
-
-var svg = d3.select("body")
-            .append("svg")
-            .attr("width", 1200)   // d3 is instantiated Here
-            .attr("height", 900);
-$(document).ready(function() {
-	createBoard(svg, 3);
-	var radius = 40;
-});
