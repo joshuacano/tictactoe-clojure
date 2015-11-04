@@ -1,7 +1,7 @@
 # Tic Tac Toe
 
-This is a clojure example of Tic Tac Toe, the user can play tic tac toe against the Computer. Unfortunately, the user is not allowed to win, so if you win, computers will revolt.
-No Big deal.
+This is a clojure example of Tic Tac Toe, the user can play tic tac toe against the Computer. Unfortunately, the user is not allowed to win, so if you win, thats fine.
+No Big deal. I'm not mad, really. Not totally distraught.
 
 ## Layout
 
@@ -35,6 +35,10 @@ Start the Webserver by using
 The default port for the application will be 3000, but should you want to use another port just throw it after lein run as an argument.
 
    ex. lein run 4050
+
+## Notes
+
+Fine I'll be pretty distraught. You're right.
 
 ## License
 
