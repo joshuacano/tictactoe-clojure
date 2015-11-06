@@ -63,7 +63,7 @@
 (deftest test-playbrain 
   (testing "Game will never end in X Winning"
     (do 
-        (let [result (repeatedly 10 #(str (play-computer-v-computer 3)))]
+        (let [result (repeatedly 50 #(str (play-computer-v-computer 3)))]
           (is (not-any? #{"x"} result))))))
   
   ;This is not working currently
