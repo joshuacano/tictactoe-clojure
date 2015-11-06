@@ -64,7 +64,6 @@
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app))
   (start-nrepl)
   (init-matrix 3) ;;Initialize Game!
-  ;(set-best-move-map) ;;Initialize Best Move Maps!
   (start-http-server (http-port port))
   (timbre/info "server started on port:" (:port @http-server)))
 

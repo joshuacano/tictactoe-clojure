@@ -25,7 +25,7 @@
 
   (if (env :dev) (parser/cache-off!))
   (timbre/info (str
-                 "\n-=[connectfour started successfully"
+                 "\n-=[tictactoe started successfully"
                  (when (env :dev) " using the development profile")
                  "]=-")))
 
@@ -33,7 +33,7 @@
   "destroy will be called when your application
    shuts down, put any clean up code here"
   []
-  (timbre/info "connectfour is shutting down...")
+  (timbre/info "tictactoe is shutting down...")
   (timbre/info "shutdown complete!"))
 
 (def app-routes
